@@ -20,7 +20,7 @@ Deno.serve(async (request) => {
   if (Boolean(appointmentId) === Boolean(orderId)) {
     return fail('Pay for exactly one of an appointment or an order', 400);
   }
-  if (!['yoco', 'payfast', 'ozow', 'snapscan'].includes(gatewayId)) {
+  if (!['stripe', 'yoco', 'payfast', 'ozow', 'snapscan'].includes(gatewayId)) {
     return fail('Unknown payment method', 400);
   }
 
@@ -117,7 +117,9 @@ Deno.serve(async (request) => {
   let checkout;
   try {
     checkout =
-      gatewayId === 'yoco'
+      gatewayId === 'stripe'
+        ? await createStripeCheckout(request_, user, existingPaymentId)
+        : gatewayId === 'yoco'
         ? await createYocoCheckout(request_)
         : gatewayId === 'payfast'
           ? await createPayfastCheckout(request_, user)
@@ -150,6 +152,44 @@ interface CheckoutRequest {
   successUrl: string;
   cancelUrl: string;
   webhookUrl: string;
+}
+
+async function createStripeCheckout(
+  r: CheckoutRequest,
+  user: { full_name: string; email: string },
+  paymentId: string,
+) {
+  const secretKey = Deno.env.get('STRIPE_SECRET_KEY');
+  if (!secretKey) throw new Error('STRIPE_SECRET_KEY is not configured');
+
+  const params = new URLSearchParams();
+  params.set('mode', 'payment');
+  params.set('ui_mode', 'embedded');
+  params.set('return_url', `${r.successUrl}&session_id={CHECKOUT_SESSION_ID}`);
+  params.set('customer_email', user.email);
+  params.set('client_reference_id', r.reference);
+  params.set('line_items[0][price_data][currency]', 'zar');
+  params.set('line_items[0][price_data][unit_amount]', String(r.amountCents));
+  params.set('line_items[0][price_data][product_data][name]', r.description);
+  params.set('line_items[0][quantity]', '1');
+  params.set('metadata[payment_id]', paymentId);
+  params.set('metadata[reference]', r.reference);
+  params.set('payment_intent_data[metadata][payment_id]', paymentId);
+  params.set('payment_intent_data[metadata][reference]', r.reference);
+
+  const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Idempotency-Key': `dokta-${r.reference}`,
+      'Stripe-Version': '2026-07-29.dahlia',
+    },
+    body: params,
+  });
+  if (!response.ok) throw new Error(`Stripe ${response.status}: ${await response.text()}`);
+  const data = await response.json();
+  return { gateway: 'stripe', clientSecret: data.client_secret, gatewayRef: data.id };
 }
 
 async function createYocoCheckout(r: CheckoutRequest) {

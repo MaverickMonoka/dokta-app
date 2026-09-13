@@ -25,7 +25,7 @@ create type appointment_status  as enum ('requested','confirmed','in_progress','
 create type prescription_status as enum ('issued','sent_to_pharmacy','approved','dispensed','collected','cancelled','expired');
 create type order_status        as enum ('cart','awaiting_payment','paid','picking','ready_for_collection','out_for_delivery','delivered','cancelled','refunded');
 create type fulfilment_method   as enum ('collection','delivery');
-create type payment_gateway     as enum ('yoco','payfast','ozow','snapscan','cash','medical_aid');
+create type payment_gateway     as enum ('stripe','yoco','payfast','ozow','snapscan','cash','medical_aid');
 create type payment_status      as enum ('pending','processing','succeeded','failed','refunded','partially_refunded');
 create type medicine_schedule   as enum ('S0','S1','S2','S3','S4','S5','S6');
 create type queue_state         as enum ('waiting','triaged','with_doctor','done','left');
