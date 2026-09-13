@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PUBLIC = ['/', '/login', '/auth/callback', '/legal'];
+const PUBLIC = ['/', '/login', '/signup', '/auth/callback', '/legal'];
 
 /**
  * Refreshes the session on every request and gates private routes. Role checks
