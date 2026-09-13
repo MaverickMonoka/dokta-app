@@ -1,0 +1,37 @@
+project_id = "dokta-os"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 500
+
+[db]
+port = 54322
+major_version = 15
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/login"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+
+[auth.email]
+enable_confirmations = true
+
+# Webhooks are called by the gateways, which have no Supabase JWT.
+# Signature verification inside the function is what authenticates them.
+[functions.payment-webhook]
+verify_jwt = false
+
+[functions.dispense]
+verify_jwt = true
+
+[functions.checkout]
+verify_jwt = true
+
+[functions.reminders]
+verify_jwt = false
