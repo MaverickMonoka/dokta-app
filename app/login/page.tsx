@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession, homeFor } from '@dokta/auth';
 import { LoginForm } from '@/components/login-form';
@@ -35,6 +36,12 @@ export default async function LoginPage({
                   : undefined
             }
           />
+          <p className="mt-5 text-center text-sm text-muted">
+            New to Dokta?{' '}
+            <Link href="/signup" className="font-medium text-care hover:text-care-dark">
+              Create a patient account
+            </Link>
+          </p>
         </div>
       </div>
 
