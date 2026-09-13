@@ -315,7 +315,7 @@ create index appointments_doctor_day_idx on appointments(doctor_id, scheduled_fo
 alter table appointments add constraint no_double_booking
   exclude using gist (
     doctor_id with =,
-    tstzrange(scheduled_for, scheduled_for + (duration_mins || ' minutes')::interval) with &&
+    tsrange(timezone('UTC', scheduled_for), timezone('UTC', scheduled_for) + make_interval(mins => duration_mins)) with &&
   ) where (status in ('requested','confirmed','in_progress'));
 
 create table consultations (
@@ -736,16 +736,17 @@ begin
     coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
     new.email,
     new.raw_user_meta_data->>'phone',
-    coalesce((new.raw_user_meta_data->>'role')::user_role, 'patient')
+    'patient'::user_role
   )
   on conflict (id) do nothing;
 
-  if coalesce((new.raw_user_meta_data->>'role')::user_role, 'patient') = 'patient' then
-    insert into public.patients (user_id) values (new.id) on conflict do nothing;
-  end if;
+  insert into public.patients (user_id) values (new.id) on conflict do nothing;
 
   return new;
 end $$;
+
+revoke all on function handle_new_auth_user() from public, anon, authenticated;
+grant execute on function handle_new_auth_user() to postgres, service_role, supabase_auth_admin;
 
 create trigger on_auth_user_created
   after insert on auth.users
