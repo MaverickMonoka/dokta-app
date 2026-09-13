@@ -7,6 +7,9 @@
 [build.environment]
   NODE_VERSION = "20"
   PNPM_VERSION = "9.12.0"
+  NEXT_PUBLIC_SUPABASE_URL = "https://gojugsbxonazeuzjnego.supabase.co"
+  NEXT_PUBLIC_SUPABASE_ANON_KEY = "sb_publishable_W2LAuGwONU7WY_IR5l0Iww_-BQGUTaL"
+  APP_URL = "https://dokta-app.netlify.app"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
