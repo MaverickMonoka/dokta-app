@@ -6,7 +6,7 @@ export type Role = 'patient' | 'doctor' | 'pharmacy' | 'clinic' | 'admin';
  */
 export const homeFor: Record<Role, string> = {
   patient: '/patient/appointments',
-  doctor: '/doctor/appointments',
+  doctor: '/doctor',
   pharmacy: '/pharmacy/pos',
   clinic: '/clinic/queue',
   admin: '/dashboard',
