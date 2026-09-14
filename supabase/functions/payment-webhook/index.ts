@@ -1,7 +1,7 @@
 import { admin, json } from '../_shared/db.ts';
 
 /**
- * Gateway callbacks for Yoco, PayFast, Ozow and SnapScan.
+ * Gateway callbacks for Stripe, Yoco, PayFast, Ozow and SnapScan.
  *
  * Two rules hold throughout:
  *   1. A payload that fails verification changes nothing and returns 200.
@@ -18,7 +18,8 @@ Deno.serve(async (request) => {
     null;
 
   try {
-    if (gateway === 'yoco') outcome = await verifyYoco(raw, request.headers);
+    if (gateway === 'stripe') outcome = await verifyStripe(raw, request.headers);
+    else if (gateway === 'yoco') outcome = await verifyYoco(raw, request.headers);
     else if (gateway === 'payfast') outcome = verifyPayfast(raw);
     else if (gateway === 'ozow') outcome = await verifyOzow(raw);
     else if (gateway === 'snapscan') outcome = await verifySnapscan(raw, request.headers);
@@ -82,6 +83,38 @@ async function hmac(algorithm: 'SHA-256', key: string, message: string) {
   );
   const signature = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(message));
   return [...new Uint8Array(signature)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyStripe(raw: string, headers: Headers) {
+  const signature = headers.get('stripe-signature');
+  const secret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+  if (!signature || !secret) return null;
+
+  const timestamp = signature.split(',').find((item) => item.startsWith('t='))?.slice(2);
+  const provided = signature.split(',').filter((item) => item.startsWith('v1=')).map((item) => item.slice(3));
+  if (!timestamp || Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return null;
+  const expected = await hmac('SHA-256', secret, `${timestamp}.${raw}`);
+  if (!provided.some((value) => timingSafeEqual(value, expected))) return null;
+
+  const event = JSON.parse(raw);
+  if (!['checkout.session.completed', 'checkout.session.async_payment_succeeded', 'checkout.session.async_payment_failed'].includes(event.type)) {
+    return null;
+  }
+  const session = event.data.object;
+  return {
+    reference: session.client_reference_id ?? session.metadata?.reference ?? '',
+    gatewayRef: session.payment_intent ?? session.id,
+    cents: session.amount_total ?? 0,
+    ok: event.type !== 'checkout.session.async_payment_failed' && session.payment_status === 'paid',
+    reason: session.payment_status,
+  };
+}
+
+function timingSafeEqual(left: string, right: string) {
+  if (left.length !== right.length) return false;
+  let diff = 0;
+  for (let index = 0; index < left.length; index += 1) diff |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  return diff === 0;
 }
 
 async function digest(algorithm: 'SHA-512' | 'MD5', message: string) {

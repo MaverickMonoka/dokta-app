@@ -1,18 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { CheckCircle2, CreditCard, QrCode, Smartphone, Wallet } from 'lucide-react';
+import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import { CheckCircle2, CreditCard } from 'lucide-react';
 import { supabaseBrowser } from '@dokta/auth/client';
 import { Button, Card, CardBody, ErrorState, money } from '@dokta/ui';
 
-type GatewayId = 'yoco' | 'payfast' | 'ozow' | 'snapscan';
-
-const GATEWAYS: { id: GatewayId; label: string; description: string; icon: typeof CreditCard }[] = [
-  { id: 'yoco', label: 'Card', description: 'Debit or credit card', icon: CreditCard },
-  { id: 'ozow', label: 'Instant EFT', description: 'Pay directly from your bank', icon: Smartphone },
-  { id: 'snapscan', label: 'SnapScan', description: 'Scan a QR code to pay', icon: QrCode },
-  { id: 'payfast', label: 'PayFast', description: 'Card, EFT or instant EFT', icon: Wallet },
-];
+const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 export function PaymentCheckout({
   appointmentId,
@@ -26,11 +22,12 @@ export function PaymentCheckout({
   alreadyPaid: boolean;
 }) {
   const [error, setError] = React.useState<string | null>(null);
-  const [pending, setPending] = React.useState<GatewayId | null>(null);
+  const [pending, setPending] = React.useState(false);
+  const [clientSecret, setClientSecret] = React.useState<string | null>(null);
 
-  async function pay(gateway: GatewayId) {
+  async function pay() {
     setError(null);
-    setPending(gateway);
+    setPending(true);
 
     try {
       const supabase = supabaseBrowser();
@@ -43,34 +40,18 @@ export function PaymentCheckout({
         {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gateway, appointmentId }),
+          body: JSON.stringify({ gateway: 'stripe', appointmentId }),
         },
       );
 
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? 'Could not start the payment.');
 
-      if (result.formFields) {
-        // PayFast and Ozow expect a real form POST, not a redirect — build one
-        // and submit it, which is the standard way to hand off to their host.
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = result.redirectUrl;
-        for (const [key, value] of Object.entries(result.formFields as Record<string, string>)) {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = value;
-          form.appendChild(input);
-        }
-        document.body.appendChild(form);
-        form.submit();
-      } else {
-        window.location.href = result.redirectUrl;
-      }
+      if (!result.clientSecret) throw new Error('Stripe did not return a checkout session.');
+      setClientSecret(result.clientSecret);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
-      setPending(null);
+      setPending(false);
     }
   }
 
@@ -86,6 +67,19 @@ export function PaymentCheckout({
     );
   }
 
+  if (clientSecret && stripePromise) {
+    return (
+      <div className="max-w-2xl space-y-4">
+        <button type="button" onClick={() => setClientSecret(null)} className="text-sm font-medium text-care hover:underline">
+          Back to payment summary
+        </button>
+        <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
+          <EmbeddedCheckout />
+        </EmbeddedCheckoutProvider>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-md space-y-4">
       <Card>
@@ -95,26 +89,21 @@ export function PaymentCheckout({
         </CardBody>
       </Card>
 
-      <div className="space-y-2">
-        {GATEWAYS.map((g) => (
-          <button
-            key={g.id}
-            type="button"
-            disabled={pending !== null}
-            onClick={() => pay(g.id)}
-            className="flex w-full items-center gap-3 rounded-card border border-hairline bg-white p-4 text-left transition-colors hover:border-care disabled:opacity-60"
-          >
-            <g.icon className="h-5 w-5 shrink-0 text-navy" aria-hidden />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-ink">{g.label}</span>
-              <span className="block text-meta text-muted">{g.description}</span>
-            </span>
-            {pending === g.id && (
-              <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-care border-t-transparent" />
-            )}
-          </button>
-        ))}
-      </div>
+      <button
+        type="button"
+        disabled={pending || !stripePromise}
+        onClick={pay}
+        className="flex w-full items-center gap-3 rounded-card border border-hairline bg-white p-4 text-left transition-colors hover:border-care disabled:opacity-60"
+      >
+        <CreditCard className="h-5 w-5 shrink-0 text-navy" aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-medium text-ink">Pay securely with Stripe</span>
+          <span className="block text-meta text-muted">Card and available wallet options</span>
+        </span>
+        {pending && <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-care border-t-transparent" />}
+      </button>
+
+      {!stripePromise && <ErrorState title="Payments are being configured" body="Stripe is not available yet. Please try again shortly." />}
 
       {error && <ErrorState title="Payment could not start" body={error} />}
     </div>
