@@ -9,7 +9,7 @@ export const homeFor: Record<Role, string> = {
   doctor: '/doctor',
   pharmacy: '/pharmacy/pos',
   clinic: '/clinic/queue',
-  admin: '/dashboard',
+  admin: '/admin/doctors',
 };
 
 /** Route prefixes each role may open. Admin may open everything. */
@@ -18,7 +18,7 @@ export const areasFor: Record<Role, string[]> = {
   doctor: ['/doctor', '/dashboard'],
   pharmacy: ['/pharmacy', '/dashboard'],
   clinic: ['/clinic', '/dashboard'],
-  admin: ['/patient', '/doctor', '/pharmacy', '/clinic', '/dashboard'],
+  admin: ['/admin', '/patient', '/doctor', '/pharmacy', '/clinic', '/dashboard'],
 };
 
 export function mayOpen(role: Role | null | undefined, path: string): boolean {
