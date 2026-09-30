@@ -6,7 +6,7 @@ import { supabaseBrowser } from '@dokta/auth/client';
 import { safeReturnTo } from '@dokta/auth/redirect';
 import { Button, ErrorState, Field } from '@dokta/ui';
 
-export function LoginForm({ next, initialError }: { next?: string; initialError?: string }) {
+export function LoginForm({ next, initialError, label = 'Sign in' }: { next?: string; initialError?: string; label?: string }) {
   const router = useRouter();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -58,7 +58,7 @@ export function LoginForm({ next, initialError }: { next?: string; initialError?
       {error && <ErrorState title="Could not sign in" body={error} />}
 
       <Button type="submit" full size="lg" loading={busy} disabled={!email || !password}>
-        Sign in
+        {label}
       </Button>
 
       <p className="text-meta text-muted">
