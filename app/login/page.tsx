@@ -9,25 +9,50 @@ export const metadata = { title: 'Sign in' };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { next?: string; error?: string };
+  searchParams: { next?: string; error?: string; role?: string };
 }) {
   const session = await getSession();
   if (session) redirect(safeReturnTo(searchParams.next, homeFor[session.role]));
+
+  const options = [
+    { role: 'patient', label: 'Patient Login', description: 'Appointments and health records' },
+    { role: 'doctor', label: 'Doctor Login', description: 'Consultations and prescriptions' },
+    { role: 'pharmacy', label: 'Pharmacy Login', description: 'Dispensing and pharmacy workspace' },
+  ];
+  const selected = options.find((option) => option.role === searchParams.role);
 
   return (
     <main id="main" className="grid min-h-dvh lg:grid-cols-2">
       {/* Form first in the DOM so a screen reader and a phone both reach it first. */}
       <div className="flex items-center justify-center bg-white px-6 py-12">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-md">
           <p className="font-display text-xl font-bold tracking-tight text-navy">DOKTA</p>
-          <h1 className="mt-8 font-display text-display-2 text-ink">Sign in</h1>
+          <h1 className="mt-8 font-display text-display-2 text-ink">{selected?.label ?? 'Sign in to Dokta'}</h1>
           <p className="mt-2 text-sm text-muted">
-            One account for patients, doctors, pharmacies and clinics. You are taken to your own
-            area automatically.
+            Choose your login below, then sign in with your existing account.
+          </p>
+
+          <nav aria-label="Login options" className="mt-6 grid gap-2">
+            {options.map((option) => (
+              <Link
+                key={option.role}
+                href={{ pathname: '/login', query: { role: option.role, ...(searchParams.next ? { next: searchParams.next } : {}) } }}
+                aria-current={selected?.role === option.role ? 'page' : undefined}
+                className={`rounded-xl border px-4 py-3 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-care ${selected?.role === option.role ? 'border-care bg-care/10' : 'border-slate-200 hover:border-care hover:bg-slate-50'}`}
+              >
+                <span className="block font-semibold text-navy">{option.label}</span>
+                <span className="mt-1 block text-xs text-muted">{option.description}</span>
+              </Link>
+            ))}
+          </nav>
+          <p className="mt-4 text-xs text-muted">
+            Your account determines access to your workspace. Clinic staff and administrators can also sign in below.
           </p>
 
           <LoginForm
+            key={selected?.role ?? 'shared'}
             next={searchParams.next}
+            label={selected ? `Sign in as ${selected.role === 'pharmacy' ? 'pharmacy staff' : `a ${selected.role}`}` : 'Sign in'}
             initialError={
               searchParams.error === 'exchange_failed'
                 ? 'That sign-in link has already been used or has expired. Request a new one.'
