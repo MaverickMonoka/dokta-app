@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@dokta/auth/client';
+import { safeReturnTo } from '@dokta/auth/redirect';
 import { Button, ErrorState, Field } from '@dokta/ui';
 
 export function LoginForm({ next, initialError }: { next?: string; initialError?: string }) {
@@ -17,27 +18,22 @@ export function LoginForm({ next, initialError }: { next?: string; initialError?
     setError(undefined);
     setBusy(true);
 
-    const { error: signInError } = await supabaseBrowser().auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-
-    setBusy(false);
-
-    if (signInError) {
-      // Never distinguish "no such account" from "wrong password" — that
-      // difference tells an attacker which emails are registered here, which
-      // for a health platform is itself sensitive.
-      setError(
-        signInError.message === 'Invalid login credentials'
-          ? 'That email and password do not match an account.'
-          : signInError.message,
-      );
-      return;
+    try {
+      const { error: signInError } = await supabaseBrowser().auth.signInWithPassword({
+        email: email.trim(), password,
+      });
+      if (signInError) {
+        setError(signInError.message === 'Invalid login credentials'
+          ? 'That email and password do not match an account.' : signInError.message);
+        return;
+      }
+      router.replace(safeReturnTo(next));
+      router.refresh();
+    } catch {
+      setError('Could not connect. Check your connection and try again.');
+    } finally {
+      setBusy(false);
     }
-
-    router.replace(next ?? '/dashboard');
-    router.refresh();
   }
 
   return (

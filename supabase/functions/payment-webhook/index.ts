@@ -20,7 +20,7 @@ Deno.serve(async (request) => {
   try {
     if (gateway === 'stripe') outcome = await verifyStripe(raw, request.headers);
     else if (gateway === 'yoco') outcome = await verifyYoco(raw, request.headers);
-    else if (gateway === 'payfast') outcome = verifyPayfast(raw);
+    else if (gateway === 'payfast') return json({ error: 'PayFast verification is not configured' }, 503);
     else if (gateway === 'ozow') outcome = await verifyOzow(raw);
     else if (gateway === 'snapscan') outcome = await verifySnapscan(raw, request.headers);
     else return json({ error: 'Unknown gateway' }, 404);
@@ -37,11 +37,11 @@ Deno.serve(async (request) => {
   const db = admin();
   const { data: payment } = await db
     .from('payments')
-    .select('id, amount, status, order_id, appointment_id, user_id')
+    .select('id, amount, status, gateway, order_id, appointment_id, user_id')
     .eq('reference', outcome.reference)
     .maybeSingle();
 
-  if (!payment) return json({ received: true, handled: false });
+  if (!payment || payment.gateway !== gateway) return json({ received: true, handled: false });
   if (payment.status === 'succeeded') return json({ received: true, handled: true }); // replay
 
   if (!outcome.ok) {
@@ -53,7 +53,7 @@ Deno.serve(async (request) => {
 
   // Amount must match the invoice. A mismatch is recorded and left unpaid.
   const expected = Math.round(Number(payment.amount) * 100);
-  if (Math.abs(outcome.cents - expected) > 1) {
+  if (!Number.isSafeInteger(outcome.cents) || outcome.cents !== expected) {
     await db.from('payments').update({
       status: 'failed',
       gateway_ref: outcome.gatewayRef,
@@ -147,19 +147,6 @@ async function verifyYoco(raw: string, headers: Headers) {
     cents: event.payload?.amount ?? 0,
     ok: event.type === 'payment.succeeded',
     reason: event.payload?.status,
-  };
-}
-
-function verifyPayfast(raw: string) {
-  const params = Object.fromEntries(new URLSearchParams(raw));
-  // PayFast signature verification requires an MD5 over the fields in
-  // submission order; it is validated in the same shape as the web handler.
-  return {
-    reference: params.m_payment_id ?? '',
-    gatewayRef: params.pf_payment_id ?? '',
-    cents: Math.round(Number(params.amount_gross ?? 0) * 100),
-    ok: params.payment_status === 'COMPLETE',
-    reason: params.payment_status,
   };
 }
 

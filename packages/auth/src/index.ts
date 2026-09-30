@@ -2,3 +2,4 @@ export { supabaseServer, supabaseAdmin, getSession, requireSession, requireArea,
 export { homeFor, areasFor, mayOpen, type Role } from './roles';
 export { updateSession } from './middleware';
 export { audit } from './audit';
+export { safeReturnTo } from './redirect';

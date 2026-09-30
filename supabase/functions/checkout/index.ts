@@ -20,6 +20,8 @@ Deno.serve(async (request) => {
   if (Boolean(appointmentId) === Boolean(orderId)) {
     return fail('Pay for exactly one of an appointment or an order', 400);
   }
+  if (gatewayId === 'payfast') return json({ error: 'PayFast is temporarily unavailable pending verified callbacks.' }, 503);
+
   if (!['stripe', 'yoco', 'payfast', 'ozow', 'snapscan'].includes(gatewayId)) {
     return fail('Unknown payment method', 400);
   }

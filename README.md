@@ -34,7 +34,7 @@ has touched them yet.
 
 ```
 dokta-os/
-  apps/web/                   The one Next.js app
+  app/                        The Next.js routes (at repository root)
     app/
       login/                  Sign-in, redirects by role
       auth/callback/          Supabase auth code exchange
@@ -106,9 +106,7 @@ not committed anywhere.
 **RLS is the real boundary, not the app.** Every table has Row Level Security
 enabled and forced. A doctor can only see patients they've actually treated —
 enforced by a `treats_patient()` policy predicate at the database level, not
-by a query filter in a page component. If a service key ever leaked, someone
-querying the database directly would still hit exactly the same walls a
-signed-in user does.
+by a query filter in a page component. Service-role keys bypass RLS and must remain server-side. Rotate a leaked key immediately.
 
 **Money and stock moves live in stored procedures, not application code.**
 `dispense_prescription`, `ring_up_sale`, and `settle_payment` are Postgres
@@ -148,7 +146,7 @@ Embedding their SDK for an in-app call is a separate piece of work.
 
 ## Deployment (Netlify)
 
-One site, base directory `apps/web`. `netlify.toml` at the repo root has the
+One site, repository root as the base directory. `netlify.toml` at the repo root has the
 build command and security headers already set — `/api/*` and `/patient/*`
 are marked `no-store` so health data never sits in a shared cache.
 
@@ -179,3 +177,13 @@ https://<project>.supabase.co/functions/v1/payment-webhook/snapscan
   not been run against the actual 2 patients / 3 appointments in production.
   That happens only with explicit go-ahead, and ideally from a paid Supabase
   branch rather than the free-tier sandbox workaround used for testing.
+
+
+## Release review — 30 September 2026
+
+- Authentication now preserves all refreshed cookies, passes navigation context to server layouts, fails closed for private routes, and sets private/no-store cache headers.
+- Sign-in and callback return URLs are restricted to local routes. Patient signup uses role routing. Sign-out is available on desktop and mobile.
+- PayFast checkout and callbacks are disabled until full ITN authenticity validation is implemented and tested. The prior callback accepted unsigned status claims. Stripe remains the embedded checkout provider.
+- Payment callbacks must match the stored gateway and exact integer amount.
+
+Before release: deploy the updated `checkout` and `payment-webhook` Edge Functions together; confirm the active Supabase project is running; verify the healthcare migrations and role profiles; configure Stripe sandbox secrets and webhook; test patient signup, sign-in, sign-out, booking, and payment against that project. No production database migration or live transaction was performed during this review.

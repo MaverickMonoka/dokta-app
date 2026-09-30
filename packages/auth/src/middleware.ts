@@ -3,50 +3,43 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 const PUBLIC = ['/', '/login', '/signup', '/auth/callback', '/legal'];
 
-/**
- * Refreshes the session on every request and gates private routes. Role checks
- * happen in the layouts, where the database is reachable — middleware only
- * answers "is this person signed in".
- */
 export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request: { headers: request.headers } });
+  const pathname = request.nextUrl.pathname;
+  const isPublic = PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  const headers = new Headers(request.headers);
+  headers.set('x-pathname', pathname);
+  let response = NextResponse.next({ request: { headers } });
+
+  function login() {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.search = '';
+    url.searchParams.set('next', pathname + request.nextUrl.search);
+    const redirect = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+    redirect.headers.set('Cache-Control', 'private, no-store');
+    return redirect;
+  }
 
   try {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder',
-      {
-        cookies: {
-          get: (name: string) => request.cookies.get(name)?.value,
-          set: (name: string, value: string, options: CookieOptions) => {
-            request.cookies.set({ name, value, ...options });
-            response = NextResponse.next({ request: { headers: request.headers } });
-            response.cookies.set({ name, value, ...options });
-          },
-          remove: (name: string, options: CookieOptions) => {
-            request.cookies.set({ name, value: '', ...options });
-            response = NextResponse.next({ request: { headers: request.headers } });
-            response.cookies.set({ name, value: '', ...options });
-          },
+      { cookies: {
+        getAll: () => request.cookies.getAll(),
+        setAll: (cookiesToSet: { name: string; value: string; options: CookieOptions }[]) => {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          headers.set('cookie', request.headers.get('cookie') ?? '');
+          response = NextResponse.next({ request: { headers } });
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
         },
-      },
+      } },
     );
-
     const { data: { user } } = await supabase.auth.getUser();
-    const { pathname } = request.nextUrl;
-    const isPublic = PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`));
-
-    if (!user && !isPublic) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/login';
-      url.searchParams.set('next', pathname);
-      return NextResponse.redirect(url);
-    }
-
-    // Pass the path down so layouts can highlight the current nav item.
-    response.headers.set('x-pathname', pathname);
-    return response;
+    if (!user && !isPublic) return login();
   } catch {
-    return response;
+    if (!isPublic) return login();
   }
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
 }
