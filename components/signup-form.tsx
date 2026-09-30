@@ -34,7 +34,7 @@ export function SignupForm() {
       if (signupError) throw signupError;
 
       if (data.session) {
-        router.replace('/patient');
+        router.replace('/dashboard');
         router.refresh();
       } else {
         setMessage('Check your email to confirm your account, then return here to sign in.');

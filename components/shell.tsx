@@ -1,3 +1,4 @@
+import { SignOut } from './sign-out';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
@@ -19,6 +20,7 @@ export async function RoleShell({ area, children }: { area: Area; children: Reac
 
   return (
     <AppShell
+      signOut={<SignOut />}
       product={area.product}
       currentPath={path}
       nav={area.nav}

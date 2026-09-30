@@ -39,7 +39,7 @@ export function PaymentCheckout({
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/checkout`,
         {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '' },
           body: JSON.stringify({ gateway: 'stripe', appointmentId }),
         },
       );
@@ -51,6 +51,7 @@ export function PaymentCheckout({
       setClientSecret(result.clientSecret);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
+    } finally {
       setPending(false);
     }
   }

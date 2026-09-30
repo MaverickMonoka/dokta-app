@@ -11,19 +11,12 @@ export function supabaseServer() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder',
     {
       cookies: {
-        get: (name: string) => store.get(name)?.value,
-        set: (name: string, value: string, options: CookieOptions) => {
+        getAll: () => store.getAll(),
+        setAll: (cookiesToSet: { name: string; value: string; options: CookieOptions }[]) => {
           try {
-            store.set({ name, value, ...options });
+            cookiesToSet.forEach(({ name, value, options }) => store.set(name, value, options));
           } catch {
-            // Server Components cannot set cookies; middleware refreshes instead.
-          }
-        },
-        remove: (name: string, options: CookieOptions) => {
-          try {
-            store.set({ name, value: '', ...options });
-          } catch {
-            /* see above */
+            // Server Components cannot write cookies; middleware refreshes them.
           }
         },
       },

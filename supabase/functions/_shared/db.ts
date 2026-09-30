@@ -1,4 +1,4 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient } from 'jsr:@supabase/supabase-js@2.116.0';
 
 /**
  * Service-role client. Bypasses RLS, so it is only ever created inside an edge

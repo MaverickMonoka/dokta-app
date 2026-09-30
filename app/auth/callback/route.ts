@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { supabaseServer, homeFor, type Role } from '@dokta/auth';
+import { supabaseServer, homeFor, safeReturnTo, type Role } from '@dokta/auth';
 
 /**
  * Exchanges the auth code for a session. The profile row is created by the
@@ -24,5 +24,5 @@ export async function GET(request: NextRequest) {
 
   await supabase.from('users').update({ last_seen_at: new Date().toISOString() }).eq('id', data.user.id);
 
-  return NextResponse.redirect(`${origin}${next ?? homeFor[(profile?.role ?? 'patient') as Role]}`);
+  return NextResponse.redirect(new URL(safeReturnTo(next, homeFor[(profile?.role ?? 'patient') as Role] ?? '/dashboard'), origin));
 }

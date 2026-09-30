@@ -1,3 +1,4 @@
+import { browserHandler } from '../_shared/http.ts';
 import { admin, audit, caller, fail, json } from '../_shared/db.ts';
 import { reference, round, vatFromInclusive } from '../_shared/money.ts';
 
@@ -10,7 +11,7 @@ import { reference, round, vatFromInclusive } from '../_shared/money.ts';
  * dispense leaves either stock that vanished or medicine handed over with no
  * order against it.
  */
-Deno.serve(async (request) => {
+Deno.serve(browserHandler(async (request) => {
   if (request.method !== 'POST') return fail('POST only', 405);
 
   const user = await caller(request);
@@ -40,7 +41,7 @@ Deno.serve(async (request) => {
     .from('pharmacies').select('owner_id').eq('id', pharmacyId).single()).data?.owner_id === user.id;
 
   if (!isOwner && !staffs) return fail('You do not work at that pharmacy', 403);
-  if (!isOwner && !staffs.can_dispense) {
+  if (!isOwner && !staffs?.can_dispense) {
     return fail('Only a pharmacist may dispense', 403);
   }
 
@@ -91,10 +92,12 @@ Deno.serve(async (request) => {
       return fail(`Only ${stock.stock_on_hand} of ${item.medicine_name} on hand`, 409);
     }
 
+    const medicine = Array.isArray(stock.medicines) ? stock.medicines[0] : stock.medicines;
+    if (!medicine) return fail('The medicine catalogue entry is missing.', 409);
     lines.push({
       inventory_id: stock.id,
       medicine_id: medicineId,
-      description: `${stock.medicines.name} ${stock.medicines.strength ?? ''}`.trim(),
+      description: `${medicine.name} ${medicine.strength ?? ''}`.trim(),
       quantity: item.quantity,
       unit_price: Number(stock.selling_price),
     });
@@ -135,4 +138,4 @@ Deno.serve(async (request) => {
   });
 
   return json({ orderId: order.id, reference: order.reference, total });
-});
+}));

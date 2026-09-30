@@ -15,11 +15,13 @@ export interface NavItem {
  */
 export function AppShell({
   product,
+  signOut,
   nav,
   currentPath,
   user,
   children,
 }: {
+  signOut?: React.ReactNode;
   product: string;
   nav: NavItem[];
   currentPath: string;
@@ -39,6 +41,7 @@ export function AppShell({
           <div className="text-right lg:hidden">
             <p className="text-sm font-medium text-white">{user.name}</p>
             {user.subtitle && <p className="text-meta text-white/50">{user.subtitle}</p>}
+            {signOut}
           </div>
         </div>
 
@@ -70,9 +73,7 @@ export function AppShell({
         <div className="hidden border-t border-white/10 px-5 py-4 lg:block">
           <p className="truncate text-sm font-medium text-white">{user.name}</p>
           {user.subtitle && <p className="truncate text-meta text-white/50">{user.subtitle}</p>}
-          <a href="/sign-out" className="mt-2 inline-block text-meta text-white/50 hover:text-white">
-            Sign out
-          </a>
+          {signOut}
         </div>
       </aside>
 

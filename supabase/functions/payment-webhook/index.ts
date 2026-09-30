@@ -1,3 +1,4 @@
+import { verifyPayfast } from '../_shared/payfast.ts';
 import { admin, json } from '../_shared/db.ts';
 
 /**
@@ -11,6 +12,7 @@ import { admin, json } from '../_shared/db.ts';
  *      retry. That is the one case where a retry is wanted.
  */
 Deno.serve(async (request) => {
+  if (request.method !== 'POST') return json({ error: 'POST only' }, 405);
   const gateway = new URL(request.url).pathname.split('/').pop();
   const raw = await request.text();
 
@@ -20,13 +22,13 @@ Deno.serve(async (request) => {
   try {
     if (gateway === 'stripe') outcome = await verifyStripe(raw, request.headers);
     else if (gateway === 'yoco') outcome = await verifyYoco(raw, request.headers);
-    else if (gateway === 'payfast') outcome = verifyPayfast(raw);
+    else if (gateway === 'payfast') outcome = await verifyPayfast(raw);
     else if (gateway === 'ozow') outcome = await verifyOzow(raw);
     else if (gateway === 'snapscan') outcome = await verifySnapscan(raw, request.headers);
     else return json({ error: 'Unknown gateway' }, 404);
   } catch (error) {
     console.error(`[webhook:${gateway}] verification threw`, error);
-    return json({ received: true, handled: false });
+    return json({ received: true, handled: false }, 503);
   }
 
   if (!outcome) {
@@ -37,28 +39,28 @@ Deno.serve(async (request) => {
   const db = admin();
   const { data: payment } = await db
     .from('payments')
-    .select('id, amount, status, order_id, appointment_id, user_id')
+    .select('id, amount, status, gateway, order_id, appointment_id, user_id')
     .eq('reference', outcome.reference)
     .maybeSingle();
 
-  if (!payment) return json({ received: true, handled: false });
+  if (!payment || payment.gateway !== gateway) return json({ received: true, handled: false });
   if (payment.status === 'succeeded') return json({ received: true, handled: true }); // replay
 
   if (!outcome.ok) {
     await db.from('payments')
       .update({ status: 'failed', gateway_ref: outcome.gatewayRef, failure_reason: outcome.reason })
-      .eq('id', payment.id);
+      .eq('id', payment.id).neq('status', 'succeeded');
     return json({ received: true, handled: true });
   }
 
   // Amount must match the invoice. A mismatch is recorded and left unpaid.
   const expected = Math.round(Number(payment.amount) * 100);
-  if (Math.abs(outcome.cents - expected) > 1) {
+  if (!Number.isSafeInteger(outcome.cents) || outcome.cents !== expected) {
     await db.from('payments').update({
       status: 'failed',
       gateway_ref: outcome.gatewayRef,
       failure_reason: `Amount mismatch: expected ${expected}c, received ${outcome.cents}c`,
-    }).eq('id', payment.id);
+    }).eq('id', payment.id).neq('status', 'succeeded');
     console.error(`[webhook:${gateway}] amount mismatch on ${outcome.reference}`);
     return json({ received: true, handled: true });
   }
@@ -92,7 +94,7 @@ async function verifyStripe(raw: string, headers: Headers) {
 
   const timestamp = signature.split(',').find((item) => item.startsWith('t='))?.slice(2);
   const provided = signature.split(',').filter((item) => item.startsWith('v1=')).map((item) => item.slice(3));
-  if (!timestamp || Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return null;
+  if (!timestamp || !Number.isFinite(Number(timestamp)) || Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return null;
   const expected = await hmac('SHA-256', secret, `${timestamp}.${raw}`);
   if (!provided.some((value) => timingSafeEqual(value, expected))) return null;
 
@@ -101,6 +103,8 @@ async function verifyStripe(raw: string, headers: Headers) {
     return null;
   }
   const session = event.data.object;
+  if (session.currency !== 'zar') return null;
+  if (event.type === 'checkout.session.completed' && session.payment_status !== 'paid') return null;
   return {
     reference: session.client_reference_id ?? session.metadata?.reference ?? '',
     gatewayRef: session.payment_intent ?? session.id,
@@ -147,19 +151,6 @@ async function verifyYoco(raw: string, headers: Headers) {
     cents: event.payload?.amount ?? 0,
     ok: event.type === 'payment.succeeded',
     reason: event.payload?.status,
-  };
-}
-
-function verifyPayfast(raw: string) {
-  const params = Object.fromEntries(new URLSearchParams(raw));
-  // PayFast signature verification requires an MD5 over the fields in
-  // submission order; it is validated in the same shape as the web handler.
-  return {
-    reference: params.m_payment_id ?? '',
-    gatewayRef: params.pf_payment_id ?? '',
-    cents: Math.round(Number(params.amount_gross ?? 0) * 100),
-    ok: params.payment_status === 'COMPLETE',
-    reason: params.payment_status,
   };
 }
 

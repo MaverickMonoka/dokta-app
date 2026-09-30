@@ -46,7 +46,7 @@ export async function bookAppointment(input: unknown) {
 
   const { data: doctor } = await supabase
     .from('doctors')
-    .select('consult_fee, verification, offers_video, users ( full_name )')
+    .select('consult_fee, verification, offers_video, offers_in_person')
     .eq('id', parsed.data.doctorId)
     .maybeSingle();
   if (!doctor || doctor.verification !== 'verified') {
@@ -55,6 +55,12 @@ export async function bookAppointment(input: unknown) {
   if (parsed.data.type === 'video' && !doctor.offers_video) {
     return { ok: false as const, error: 'This doctor does not offer video consultations.' };
   }
+
+  if (parsed.data.type === 'in_person' && !doctor.offers_in_person) return { ok: false as const, error: 'This doctor does not offer in-person consultations.' };
+  if (parsed.data.type === 'home_visit') return { ok: false as const, error: 'Home visits must be arranged with the practice.' };
+  const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(parsed.data.scheduledFor));
+  const { data: slots, error: slotError } = await supabase.rpc('available_slots', { p_doctor_id: parsed.data.doctorId, p_day: day });
+  if (slotError || !(slots as string[] | null)?.some((slot) => new Date(slot).getTime() === new Date(parsed.data.scheduledFor).getTime())) return { ok: false as const, error: 'That time is no longer available. Choose another slot.' };
 
   const apptReference = reference();
   const scheduledFor = new Date(parsed.data.scheduledFor);

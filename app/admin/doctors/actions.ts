@@ -53,7 +53,7 @@ export async function createDoctor(formData: FormData) {
 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(data.email, {
     data: { full_name: data.fullName },
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || ''}/login`,
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || ''}/auth/callback?next=/account/password`,
   });
 
   if (inviteError || !invited.user) {
@@ -63,7 +63,7 @@ export async function createDoctor(formData: FormData) {
   const userId = invited.user.id;
 
   try {
-    const { error: userError } = await admin.from('users').insert({
+    const { error: userError } = await admin.from('users').upsert({
       id: userId,
       full_name: data.fullName,
       email: data.email,

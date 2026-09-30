@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { getSession, homeFor } from '@dokta/auth';
+import { getSession, homeFor, safeReturnTo } from '@dokta/auth';
 import { LoginForm } from '@/components/login-form';
 
 export const metadata = { title: 'Sign in' };
@@ -12,7 +12,7 @@ export default async function LoginPage({
   searchParams: { next?: string; error?: string };
 }) {
   const session = await getSession();
-  if (session) redirect(searchParams.next ?? homeFor[session.role]);
+  if (session) redirect(safeReturnTo(searchParams.next, homeFor[session.role]));
 
   return (
     <main id="main" className="grid min-h-dvh lg:grid-cols-2">
