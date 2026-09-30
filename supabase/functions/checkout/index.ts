@@ -1,3 +1,5 @@
+import { payfastEncode } from '../_shared/payfast.ts';
+import { browserHandler } from '../_shared/http.ts';
 import { admin, audit, caller, fail, json } from '../_shared/db.ts';
 import { reference, round, toCents } from '../_shared/money.ts';
 
@@ -10,7 +12,7 @@ import { reference, round, toCents } from '../_shared/money.ts';
  * whatever the browser sends. That is what makes a forged "pay R1" for a
  * R1500 consultation impossible.
  */
-Deno.serve(async (request) => {
+Deno.serve(browserHandler(async (request) => {
   if (request.method !== 'POST') return fail('POST only', 405);
 
   const user = await caller(request);
@@ -20,7 +22,7 @@ Deno.serve(async (request) => {
   if (Boolean(appointmentId) === Boolean(orderId)) {
     return fail('Pay for exactly one of an appointment or an order', 400);
   }
-  if (gatewayId === 'payfast') return json({ error: 'PayFast is temporarily unavailable pending verified callbacks.' }, 503);
+  if (gatewayId === 'payfast' && (!Deno.env.get('PAYFAST_MERCHANT_ID') || !Deno.env.get('PAYFAST_MERCHANT_KEY') || !Deno.env.get('PAYFAST_PASSPHRASE'))) return fail('PayFast is not configured yet.', 503);
 
   if (!['stripe', 'yoco', 'payfast', 'ozow', 'snapscan'].includes(gatewayId)) {
     return fail('Unknown payment method', 400);
@@ -34,7 +36,7 @@ Deno.serve(async (request) => {
   if (appointmentId) {
     const { data: appointment } = await db
       .from('appointments')
-      .select('id, fee, patient_id, payment_status, doctors ( users ( full_name ) ), patients ( user_id )')
+      .select('id, fee, patient_id, status, payment_status, doctors ( users ( full_name ) ), patients ( user_id )')
       .eq('id', appointmentId)
       .maybeSingle();
 
@@ -42,6 +44,7 @@ Deno.serve(async (request) => {
     if ((appointment.patients as never as { user_id: string }).user_id !== user.id) {
       return fail('That is not your appointment', 403);
     }
+    if (['cancelled', 'no_show', 'completed'].includes(appointment.status)) return fail('This appointment is not payable.', 409);
     if (appointment.payment_status === 'succeeded') return fail('Already paid', 409);
 
     amount = Number(appointment.fee);
@@ -69,11 +72,15 @@ Deno.serve(async (request) => {
   // than piling up abandoned payment attempts.
   const { data: existing } = await db
     .from('payments')
-    .select('id, reference, status')
+    .select('id, reference, status, gateway, amount')
     .match(appointmentId ? { appointment_id: appointmentId } : { order_id: orderId })
     .maybeSingle();
 
   let paymentReference: string;
+
+  if (!Number.isFinite(amount) || amount <= 0) return fail('This booking has no payable fee. Contact your provider.', 409);
+  if (existing?.status === 'succeeded') return fail('Already paid', 409);
+  if (existing && (existing.gateway !== gatewayId || Number(existing.amount) !== amount)) return fail('A payment attempt already exists with different details. Contact support before retrying.', 409);
 
   if (existing && existing.status !== 'failed') {
     existingPaymentId = existing.id;
@@ -104,8 +111,10 @@ Deno.serve(async (request) => {
     existingPaymentId = created.id;
   }
 
-  const appUrl = Deno.env.get('APP_URL') ?? 'http://localhost:3000';
-  const target = appointmentId ? `/patient/appointments/${appointmentId}` : `/patient/medication`;
+  if (!existingPaymentId) return fail('Could not identify the payment attempt.', 500);
+
+  const appUrl = Deno.env.get('APP_URL') || 'https://dokta-app.vercel.app';
+  const target = appointmentId ? `/patient/appointments/${appointmentId}/pay` : `/patient/medication`;
 
   const request_ = {
     amountCents: toCents(amount),
@@ -145,7 +154,7 @@ Deno.serve(async (request) => {
   });
 
   return json({ paymentId: existingPaymentId, reference: paymentReference, ...checkout });
-});
+}));
 
 interface CheckoutRequest {
   amountCents: number;
@@ -240,9 +249,10 @@ async function createPayfastCheckout(r: CheckoutRequest, user: { full_name: stri
 
   const passphrase = Deno.env.get('PAYFAST_PASSPHRASE');
   const body = Object.entries(fields)
-    .map(([k, v]) => `${k}=${encodeURIComponent(v.trim()).replace(/%20/g, '+')}`)
+    .filter(([, v]) => v !== '')
+    .map(([k, v]) => `${k}=${payfastEncode(v.trim())}`)
     .join('&');
-  fields.signature = await md5(passphrase ? `${body}&passphrase=${encodeURIComponent(passphrase)}` : body);
+  fields.signature = await md5(passphrase ? `${body}&passphrase=${payfastEncode(passphrase.trim())}` : body);
 
   return {
     gateway: 'payfast',
