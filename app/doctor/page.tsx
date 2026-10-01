@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { AlertCircle, CalendarDays, CheckCircle2, Clock3, Stethoscope, Users } from 'lucide-react';
+import { AlertCircle, ArrowRight, CalendarDays, CheckCircle2, Clock3, ClipboardList, Stethoscope, Users, WalletCards } from 'lucide-react';
 import { audit, requireArea } from '@dokta/auth';
 import {
   Badge,
@@ -8,8 +8,6 @@ import {
   CardHeader,
   CardTitle,
   EmptyState,
-  PageHeader,
-  Stat,
   buttonVariants,
   money,
   time,
@@ -76,19 +74,35 @@ export default async function DoctorDashboard() {
 
   return (
     <>
-      <PageHeader
-        title={`Welcome, Dr ${session.name.split(' ').at(-1)}`}
-        description="Your clinical workspace: today's queue, patient care and records in one place."
-        actions={
-          next ? (
-            <Link href={`/doctor/consultations/${next.id}`} className={buttonVariants()}>
-              Open next patient
-            </Link>
-          ) : null
-        }
-      />
+      <section className="relative overflow-hidden bg-navy px-5 pb-8 pt-7 text-white lg:px-8 lg:pb-10 lg:pt-9">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-care/20 blur-3xl" />
+        <div className="relative mx-auto max-w-7xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-care-light">Clinical command centre</p>
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-5">
+            <div>
+              <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Dr {session.name.split(' ').at(-1)}</h1>
+              <p className="mt-2 max-w-xl text-sm text-white/60">{doctor?.speciality ?? 'Doctor'} · {today.length} patient{today.length === 1 ? '' : 's'} today</p>
+            </div>
+            {next ? <Link href={`/doctor/consultations/${next.id}`} className={buttonVariants({ className: 'shadow-lg shadow-black/10' })}>Open next patient <ArrowRight className="ml-2 h-4 w-4" /></Link> : null}
+          </div>
+          <div className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[
+              { label: 'Patients today', value: today.length, note: `${paidToday.length} paid`, icon: Users },
+              { label: 'Next 7 days', value: appointments.length, note: 'Active bookings', icon: CalendarDays },
+              { label: 'Notes to sign', value: unsigned, note: unsigned ? 'Action required' : 'All up to date', icon: ClipboardList },
+              { label: 'Gross today', value: money(grossToday), note: 'Paid appointments', icon: WalletCards },
+            ].map(({ label, value, note, icon: Icon }) => (
+              <div key={label} className="rounded-card bg-white/[0.07] p-4 ring-1 ring-white/10 backdrop-blur">
+                <div className="flex items-center justify-between"><p className="text-xs font-medium text-white/55">{label}</p><Icon className="h-4 w-4 text-care-light" /></div>
+                <p className="money mt-3 font-display text-2xl font-bold">{value}</p>
+                <p className="mt-1 text-xs text-white/45">{note}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-      <div className="space-y-6 p-5 lg:p-8">
+      <div className="mx-auto max-w-7xl space-y-6 p-5 lg:p-8">
         {!doctor ? (
           <Card className="border-alert/30 bg-alert-soft">
             <CardBody className="flex gap-3 pt-5">
@@ -118,12 +132,17 @@ export default async function DoctorDashboard() {
           </Card>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Stat label="Patients today" value={today.length} hint={`${paidToday.length} paid`} />
-          <Stat label="Next 7 days" value={appointments.length} hint="Active bookings" />
-          <Stat label="Notes to sign" value={unsigned} hint={unsigned ? 'Action required' : 'All up to date'} />
-          <Stat label="Today’s gross fees" value={money(grossToday)} hint="Paid appointments" />
-        </div>
+        <section className="grid gap-4 sm:grid-cols-3">
+          <Link href="/doctor/appointments" className="group rounded-card border border-hairline bg-white p-5 shadow-raise transition hover:-translate-y-0.5 hover:shadow-panel">
+            <CalendarDays className="h-5 w-5 text-care" /><p className="mt-4 font-display font-semibold text-ink">Today’s schedule</p><p className="mt-1 text-sm text-muted">Review the queue and open consultations.</p><ArrowRight className="mt-4 h-4 w-4 text-care transition-transform group-hover:translate-x-1" />
+          </Link>
+          <Link href="/doctor/patients" className="group rounded-card border border-hairline bg-white p-5 shadow-raise transition hover:-translate-y-0.5 hover:shadow-panel">
+            <Users className="h-5 w-5 text-care" /><p className="mt-4 font-display font-semibold text-ink">Patient care</p><p className="mt-1 text-sm text-muted">Access patients within your care relationship.</p><ArrowRight className="mt-4 h-4 w-4 text-care transition-transform group-hover:translate-x-1" />
+          </Link>
+          <Link href="/doctor/prescriptions" className="group rounded-card border border-hairline bg-white p-5 shadow-raise transition hover:-translate-y-0.5 hover:shadow-panel">
+            <Stethoscope className="h-5 w-5 text-care" /><p className="mt-4 font-display font-semibold text-ink">Prescriptions</p><p className="mt-1 text-sm text-muted">Track issued and active prescriptions.</p><ArrowRight className="mt-4 h-4 w-4 text-care transition-transform group-hover:translate-x-1" />
+          </Link>
+        </section>
 
         <div className="grid gap-5 xl:grid-cols-[1.45fr_0.75fr]">
           <Card>
