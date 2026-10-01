@@ -61,8 +61,6 @@ export function ConsultationWorkspace({
   patient: Patient;
   pastConsultations: { id: string; diagnosis: string | null; date: string; doctor: string }[];
   pharmacies: { id: string; label: string }[];
-  patientAllergies: string[];
-  currentMeds: string[];
 }) {
   const signed = Boolean(consultation.signedAt);
 
