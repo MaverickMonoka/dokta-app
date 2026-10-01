@@ -1,6 +1,6 @@
 import { Activity, AlertTriangle, Clock3, ListOrdered, Stethoscope, Users } from 'lucide-react';
 import { requireArea, audit } from '@dokta/auth';
-import { EmptyState, time } from '@dokta/ui';
+import { EmptyState, PageHeader, time } from '@dokta/ui';
 import { db } from '@/lib/db';
 import { QueueBoard } from '@/components/queue-board';
 
@@ -83,7 +83,7 @@ export default async function QueuePage() {
             <div className="hidden rounded-2xl border border-white/10 bg-white/[0.07] p-3 backdrop-blur sm:block"><Activity className="h-5 w-5 text-sky-300" /></div>
           </div>
           <div className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            ${[
+            {[
               { label: 'Waiting', value: rows.filter((r) => r.state !== 'with_doctor').length, icon: Users },
               { label: 'With doctor', value: rows.filter((r) => r.state === 'with_doctor').length, icon: Stethoscope },
               { label: 'Needs triage', value: untriaged, icon: Clock3 },
