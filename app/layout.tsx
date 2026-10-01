@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
+import { RecoverySession } from '@/components/recovery-session';
 
 const body = Inter({ subsets: ['latin'], variable: '--font-body', display: 'swap' });
 const display = Plus_Jakarta_Sans({
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Skip to content
         </a>
+        <RecoverySession />
         {children}
       </body>
     </html>
