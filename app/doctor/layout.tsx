@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, LayoutDashboard, Stethoscope, Users } from 'lucide-react';
+import { CalendarDays, BookOpen, CalendarDays, ClipboardList, LayoutDashboard, Stethoscope, Users } from 'lucide-react';
 import { requireArea } from '@dokta/auth';
 import { RoleShell } from '@/components/shell';
 
@@ -15,6 +15,7 @@ export default async function DoctorLayout({ children }: { children: React.React
           { href: '/doctor/consultations', label: 'Consultations', icon: Stethoscope },
           { href: '/doctor/patients', label: 'Patients', icon: Users },
           { href: '/doctor/prescriptions', label: 'Prescriptions', icon: ClipboardList },
+          { href: '/doctor/clinical', label: 'Clinical Tools', icon: BookOpen },
         ],
       }}
     >
