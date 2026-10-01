@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { BookOpen, Calculator, Capsule, ExternalLink, Search, ShieldCheck, Stethoscope } from 'lucide-react';
+import { BookOpen, Calculator, Pill, ExternalLink, Search, ShieldCheck, Stethoscope } from 'lucide-react';
 import { requireArea } from '@dokta/auth';
 
 const clinicalTools = [
-  { title: 'Drug Reference', body: 'Medicine lookup, dosing support, contraindications, interactions and allergy checks.', href: '/doctor/prescriptions', icon: Capsule, action: 'Open prescribing' },
+  { title: 'Drug Reference', body: 'Medicine lookup, dosing support, contraindications, interactions and allergy checks.', href: '/doctor/prescriptions', icon: Pill, action: 'Open prescribing' },
   { title: 'Clinical Reference', body: 'Evidence-led condition summaries, investigations and treatment pathways.', href: '#references', icon: BookOpen, action: 'View references' },
   { title: 'Clinical Calculators', body: 'Common validated calculations with formula, source and version shown.', href: '/doctor/clinical/calculators', icon: Calculator, action: 'Open calculators' },
 ];
