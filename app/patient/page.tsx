@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { CalendarDays, FileText, HeartPulse, Pill, Search, ShieldCheck } from 'lucide-react';
+import { Activity, CalendarDays, Droplets, FileText, HeartPulse, Pill, Plus, ShieldCheck } from 'lucide-react';
 import { requireArea } from '@dokta/auth';
-import { Badge, Card, CardBody, CardHeader, CardTitle, buttonVariants, shortDate, time } from '@dokta/ui';
+import { Badge, shortDate, time } from '@dokta/ui';
 import { db } from '@/lib/db';
 
 export const metadata = { title: 'My health' };
@@ -11,41 +11,39 @@ export default async function PatientHome() {
   const session = await requireArea('/patient');
   const supabase = db();
   const now = new Date().toISOString();
-  const [{ data: appointments }, { data: prescriptions }, { data: documents }] = await Promise.all([
-    supabase.from('appointments').select('id, scheduled_for, status, type, doctors ( speciality, users ( full_name ) )').gte('scheduled_for', now).not('status','in','(cancelled,no_show)').order('scheduled_for',{ascending:true}).limit(3),
+  const [{ data: appointments }, { data: prescriptions }, { data: documents }, { data: vitals }] = await Promise.all([
+    supabase.from('appointments').select('id, scheduled_for, status, type, reason_for_visit, doctors ( speciality, users ( full_name ) )').gte('scheduled_for', now).not('status','in','(cancelled,no_show)').order('scheduled_for',{ascending:true}).limit(3),
     supabase.from('prescriptions').select('id, status, valid_until').order('created_at',{ascending:false}).limit(20),
     supabase.from('medical_documents').select('id').limit(100),
+    supabase.from('vital_readings').select('id,metric,value,unit,recorded_at').order('recorded_at',{ascending:false}).limit(30),
   ]);
-  const next = appointments?.[0];
-  const activeMedication = (prescriptions ?? []).filter((rx) => !['collected','cancelled','expired'].includes(rx.status) && new Date(rx.valid_until) >= new Date()).length;
-  const firstName = session.name.split(' ')[0];
+  const activeMedication=(prescriptions??[]).filter(rx=>!['collected','cancelled','expired'].includes(rx.status)&&new Date(rx.valid_until)>=new Date()).length;
+  const latest=new Map<string,{value:string|number;unit:string}>();
+  for(const v of vitals??[]) if(!latest.has(v.metric)) latest.set(v.metric,{value:v.value,unit:v.unit});
+  const health=[
+    {keys:['heart_rate','heart rate'],label:'Heart rate',icon:HeartPulse},
+    {keys:['blood_pressure','blood pressure'],label:'Blood pressure',icon:Activity},
+    {keys:['blood_glucose','blood glucose','glucose'],label:'Blood glucose',icon:Droplets},
+  ].map(item=>({...item,reading:item.keys.map(k=>latest.get(k)).find(Boolean)})).filter(x=>x.reading);
 
-  return (
-    <div className="pb-10">
-      <section className="relative overflow-hidden bg-gradient-to-br from-navy via-navy to-[#075b91] px-5 pb-9 pt-7 text-white lg:px-8 lg:py-10">
-        <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-care/20 blur-3xl" />
-        <div className="relative mx-auto max-w-7xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-care-light">Your health, in one place</p>
-          <div className="mt-2 flex flex-wrap items-end justify-between gap-5">
-            <div><h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Hi, {firstName}</h1><p className="mt-2 text-sm text-white/60">Appointments, medication and records — private and easy to reach.</p></div>
-            <Link href="/patient/appointments/book" className={buttonVariants({ className: 'shadow-lg shadow-black/10' })}><Search className="mr-2 h-4 w-4" /> Find a doctor</Link>
-          </div>
-          <div className="mt-7 grid grid-cols-3 gap-3">
-            <div className="rounded-[1.25rem] bg-white/[0.10] p-4 ring-1 ring-white/15 backdrop-blur"><CalendarDays className="h-4 w-4 text-care-light"/><p className="mt-3 font-display text-2xl font-bold">{appointments?.length ?? 0}</p><p className="mt-1 text-xs text-white/50">Upcoming</p></div>
-            <div className="rounded-card bg-white/[0.07] p-4 ring-1 ring-white/10"><Pill className="h-4 w-4 text-care-light"/><p className="mt-3 font-display text-2xl font-bold">{activeMedication}</p><p className="mt-1 text-xs text-white/50">Active scripts</p></div>
-            <div className="rounded-card bg-white/[0.07] p-4 ring-1 ring-white/10"><FileText className="h-4 w-4 text-care-light"/><p className="mt-3 font-display text-2xl font-bold">{documents?.length ?? 0}</p><p className="mt-1 text-xs text-white/50">Documents</p></div>
-          </div>
+  return <div className="min-h-dvh bg-[#061d35] text-white lg:bg-canvas lg:text-ink">
+    <section className="relative overflow-hidden bg-[radial-gradient(circle_at_85%_0%,rgba(27,135,220,.42),transparent_36%),linear-gradient(155deg,#123f70_0%,#082b50_45%,#061d35_100%)] px-5 pb-7 pt-6 lg:px-8 lg:py-10">
+      <div className="mx-auto max-w-7xl">
+        <div className="flex items-center justify-between"><div><p className="font-display text-3xl font-bold tracking-tight">DOKTA</p><p className="mt-1 text-sm text-white/65">Hi, {session.name.split(' ')[0]}</p></div><div className="grid h-12 w-12 place-items-center rounded-full border border-white/20 bg-white/10 text-lg font-bold shadow-xl backdrop-blur">{session.name.slice(0,1).toUpperCase()}</div></div>
+        <div className="mt-8 flex items-end justify-between"><div><p className="text-xs font-semibold uppercase tracking-[.18em] text-sky-300">Your care</p><h1 className="mt-1 font-display text-2xl font-bold">Appointments</h1></div><Link href="/patient/appointments/book" className="grid h-10 w-10 place-items-center rounded-full bg-sky-400 text-navy shadow-lg shadow-sky-950/30" aria-label="Book appointment"><Plus className="h-5 w-5"/></Link></div>
+        <div className="-mx-5 mt-4 flex snap-x gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none]">
+          {(appointments??[]).length ? appointments!.map(a=>{const d=a.doctors as never as {speciality:string;users:{full_name:string}};return <Link key={a.id} href="/patient/appointments" className="min-w-[78%] snap-start rounded-[1.35rem] border border-white/15 bg-white/[0.12] p-4 shadow-xl backdrop-blur-xl sm:min-w-[300px]"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{d.users.full_name}</p><p className="text-xs text-white/55">{d.speciality}</p></div><Badge status={a.status.toUpperCase()}/></div><div className="mt-5 flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-sky-400/20 text-sky-300"><CalendarDays className="h-5 w-5"/></div><div><p className="font-semibold">{shortDate(a.scheduled_for)}</p><p className="text-sm text-white/65">{time(a.scheduled_for)}</p></div></div><p className="mt-4 border-t border-white/10 pt-3 text-xs text-white/55">{a.reason_for_visit??a.type.replace('_',' ')}</p></Link>}) : <Link href="/patient/appointments/book" className="min-w-full rounded-[1.35rem] border border-dashed border-white/20 bg-white/[0.07] p-5 text-center"><CalendarDays className="mx-auto h-6 w-6 text-sky-300"/><p className="mt-3 font-semibold">No upcoming appointment</p><p className="mt-1 text-sm text-white/55">Tap to find a doctor and book care.</p></Link>}
+        </div>
+      </div>
+    </section>
+    <div className="mx-auto max-w-7xl space-y-7 px-5 pb-8 lg:p-8">
+      <section><div className="flex items-center justify-between"><h2 className="font-display text-xl font-bold">Health snapshot</h2><Link href="/patient/records" className="text-xs font-semibold text-sky-300 lg:text-care">View records</Link></div>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          {health.length?health.map(({label,icon:Icon,reading})=><div key={label} className="min-h-32 rounded-[1.35rem] border border-sky-300/15 bg-gradient-to-br from-[#164e80] to-[#0b6ab0] p-4 shadow-xl"><div className="flex items-center justify-between"><p className="text-sm text-white/75">{label}</p><Icon className="h-4 w-4 text-cyan-300"/></div><p className="mt-4 font-display text-2xl font-bold">{reading!.value}<span className="ml-1 text-xs font-normal text-white/60">{reading!.unit}</span></p><div className="mt-4 h-1.5 rounded-full bg-white/10"><div className="h-full w-2/3 rounded-full bg-cyan-300/70"/></div></div>):<><div className="rounded-[1.35rem] border border-white/10 bg-white/[0.07] p-4"><HeartPulse className="h-5 w-5 text-sky-300"/><p className="mt-4 font-semibold">Health readings</p><p className="mt-1 text-xs text-white/50">No readings recorded yet.</p></div><div className="rounded-[1.35rem] border border-white/10 bg-white/[0.07] p-4"><ShieldCheck className="h-5 w-5 text-sky-300"/><p className="mt-4 font-semibold">Private records</p><p className="mt-1 text-xs text-white/50">{documents?.length??0} documents stored.</p></div></>}
         </div>
       </section>
-      <div className="mx-auto max-w-7xl space-y-6 p-5 lg:p-8">
-        {next ? <Card className="overflow-hidden border-care/20"><CardHeader><div><p className="text-xs font-semibold uppercase tracking-wider text-care">Next appointment</p><CardTitle className="mt-1">{(next.doctors as never as {users:{full_name:string}}).users.full_name}</CardTitle></div><Badge status={next.status.toUpperCase()}/></CardHeader><CardBody><p className="text-sm text-muted">{shortDate(next.scheduled_for)} · {time(next.scheduled_for)} · {next.type.replace('_',' ')}</p><Link href="/patient/appointments" className="mt-4 inline-flex text-sm font-semibold text-care">View appointment →</Link></CardBody></Card> : <Card className="border-dashed"><CardBody className="py-7 text-center"><HeartPulse className="mx-auto h-7 w-7 text-care"/><p className="mt-3 font-display font-semibold">No upcoming consultations</p><p className="mt-1 text-sm text-muted">Book care when you need it.</p><Link href="/patient/appointments/book" className="mt-4 inline-flex text-sm font-semibold text-care">Find a doctor →</Link></CardBody></Card>}
-        <section className="grid gap-4 sm:grid-cols-3">
-          <Link href="/patient/appointments" className="rounded-[1.25rem] border border-white/70 bg-white/90 p-5 shadow-raise backdrop-blur"><CalendarDays className="h-5 w-5 text-care"/><p className="mt-4 font-display font-semibold">Appointments</p><p className="mt-1 text-sm text-muted">Bookings, payments and video consultations.</p></Link>
-          <Link href="/patient/medication" className="rounded-[1.25rem] border border-white/70 bg-white/90 p-5 shadow-raise backdrop-blur"><Pill className="h-5 w-5 text-care"/><p className="mt-4 font-display font-semibold">Medication</p><p className="mt-1 text-sm text-muted">Your prescriptions and repeat status.</p></Link>
-          <Link href="/patient/records" className="rounded-[1.25rem] border border-white/70 bg-white/90 p-5 shadow-raise backdrop-blur"><ShieldCheck className="h-5 w-5 text-care"/><p className="mt-4 font-display font-semibold">Health records</p><p className="mt-1 text-sm text-muted">Documents, readings and access history.</p></Link>
-        </section>
-        <div className="rounded-card bg-care-soft p-5"><div className="flex gap-3"><ShieldCheck className="h-5 w-5 shrink-0 text-care"/><div><p className="text-sm font-semibold text-care-dark">Your health information stays protected</p><p className="mt-1 text-xs leading-relaxed text-muted">Dokta records access to your medical information. You can review who opened your records from Health records.</p></div></div></div>
-      </div>
+      <section className="grid grid-cols-2 gap-3"><Link href="/patient/medication" className="rounded-[1.35rem] border border-white/10 bg-white/[0.07] p-4 lg:border-hairline lg:bg-white"><Pill className="h-5 w-5 text-sky-300 lg:text-care"/><p className="mt-4 font-display text-xl font-bold">{activeMedication}</p><p className="text-xs text-white/50 lg:text-muted">Active prescriptions</p></Link><Link href="/patient/records" className="rounded-[1.35rem] border border-white/10 bg-white/[0.07] p-4 lg:border-hairline lg:bg-white"><FileText className="h-5 w-5 text-sky-300 lg:text-care"/><p className="mt-4 font-display text-xl font-bold">{documents?.length??0}</p><p className="text-xs text-white/50 lg:text-muted">Health documents</p></Link></section>
+      <Link href="/patient/appointments/book" className="mx-auto flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-6 py-3 text-sm font-semibold shadow-xl backdrop-blur lg:bg-care lg:text-white"><Plus className="h-4 w-4"/> New appointment</Link>
     </div>
-  );
+  </div>;
 }
