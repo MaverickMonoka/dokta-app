@@ -1,4 +1,4 @@
-import { CalendarDays, BookOpen, CalendarDays, ClipboardList, LayoutDashboard, Stethoscope, Users } from 'lucide-react';
+import { BookOpen, CalendarDays, ClipboardList, LayoutDashboard, Stethoscope, Users } from 'lucide-react';
 import { requireArea } from '@dokta/auth';
 import { RoleShell } from '@/components/shell';
 
