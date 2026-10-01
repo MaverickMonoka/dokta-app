@@ -26,6 +26,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: node tests/auth-release.cjs
+      - run: node tests/route-links.cjs
       - run: node tests/edge-security.cjs
       - run: pnpm build
         env:
