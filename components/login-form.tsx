@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@dokta/auth/client';
 import { safeReturnTo } from '@dokta/auth/redirect';
@@ -19,13 +18,10 @@ export function LoginForm({ next, initialError, label = 'Sign in' }: { next?: st
     if (!email.trim()) { setError('Enter your email above to request a password reset.'); return; }
     setBusy(true); setError(undefined); setResetMessage(undefined);
     try {
-      // Implicit recovery links also work when opened on another device.
-      const recovery = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { auth: { flowType: 'implicit', persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
-      );
-      const { error } = await recovery.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/login`,
+      const { error } = await supabaseBrowser().auth.resetPasswordForEmail(email.trim(), {
+        // Route recovery through the server callback so the session cookie is
+        // established before the protected password page is opened.
+        redirectTo: `${window.location.origin}/auth/callback?next=/account/password`,
       });
       if (error) throw error;
       setResetMessage('If this email has an account, a reset link is on its way. Check your inbox and spam folder.');
