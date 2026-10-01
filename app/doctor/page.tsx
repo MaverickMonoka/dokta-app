@@ -74,7 +74,7 @@ export default async function DoctorDashboard() {
 
   return (
     <>
-      <section className="relative overflow-hidden bg-navy px-5 pb-8 pt-7 text-white lg:px-8 lg:pb-10 lg:pt-9">
+      <section className="relative overflow-hidden bg-[radial-gradient(circle_at_85%_0%,rgba(56,189,248,.30),transparent_34%),linear-gradient(145deg,#123f70,#082b50_55%,#061d35)] px-5 pb-10 pt-7 text-white lg:px-8 lg:pb-10 lg:pt-9">
         <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-care/20 blur-3xl" />
         <div className="relative mx-auto max-w-7xl">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-care-light">Clinical command centre</p>
@@ -92,7 +92,7 @@ export default async function DoctorDashboard() {
               { label: 'Notes to sign', value: unsigned, note: unsigned ? 'Action required' : 'All up to date', icon: ClipboardList },
               { label: 'Gross today', value: money(grossToday), note: 'Paid appointments', icon: WalletCards },
             ].map(({ label, value, note, icon: Icon }) => (
-              <div key={label} className="rounded-card bg-white/[0.07] p-4 ring-1 ring-white/10 backdrop-blur">
+              <div key={label} className="rounded-[1.35rem] border border-white/10 bg-white/[0.07] shadow-xl p-4 ring-1 ring-white/10 backdrop-blur">
                 <div className="flex items-center justify-between"><p className="text-xs font-medium text-white/55">{label}</p><Icon className="h-4 w-4 text-care-light" /></div>
                 <p className="money mt-3 font-display text-2xl font-bold">{value}</p>
                 <p className="mt-1 text-xs text-white/45">{note}</p>
@@ -133,13 +133,13 @@ export default async function DoctorDashboard() {
         )}
 
         <section className="grid gap-4 sm:grid-cols-3">
-          <Link href="/doctor/appointments" className="group rounded-card border border-hairline bg-white p-5 shadow-raise transition hover:-translate-y-0.5 hover:shadow-panel">
+          <Link href="/doctor/appointments" className="group rounded-[1.35rem] border border-white bg-white p-5 shadow-xl transition hover:-translate-y-0.5 hover:shadow-panel">
             <CalendarDays className="h-5 w-5 text-care" /><p className="mt-4 font-display font-semibold text-ink">Today’s schedule</p><p className="mt-1 text-sm text-muted">Review the queue and open consultations.</p><ArrowRight className="mt-4 h-4 w-4 text-care transition-transform group-hover:translate-x-1" />
           </Link>
-          <Link href="/doctor/patients" className="group rounded-card border border-hairline bg-white p-5 shadow-raise transition hover:-translate-y-0.5 hover:shadow-panel">
+          <Link href="/doctor/patients" className="group rounded-[1.35rem] border border-white bg-white p-5 shadow-xl transition hover:-translate-y-0.5 hover:shadow-panel">
             <Users className="h-5 w-5 text-care" /><p className="mt-4 font-display font-semibold text-ink">Patient care</p><p className="mt-1 text-sm text-muted">Access patients within your care relationship.</p><ArrowRight className="mt-4 h-4 w-4 text-care transition-transform group-hover:translate-x-1" />
           </Link>
-          <Link href="/doctor/prescriptions" className="group rounded-card border border-hairline bg-white p-5 shadow-raise transition hover:-translate-y-0.5 hover:shadow-panel">
+          <Link href="/doctor/prescriptions" className="group rounded-[1.35rem] border border-white bg-white p-5 shadow-xl transition hover:-translate-y-0.5 hover:shadow-panel">
             <Stethoscope className="h-5 w-5 text-care" /><p className="mt-4 font-display font-semibold text-ink">Prescriptions</p><p className="mt-1 text-sm text-muted">Track issued and active prescriptions.</p><ArrowRight className="mt-4 h-4 w-4 text-care transition-transform group-hover:translate-x-1" />
           </Link>
         </section>
