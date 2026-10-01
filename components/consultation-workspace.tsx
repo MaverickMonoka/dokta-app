@@ -349,6 +349,8 @@ function PrescribeSheet({
   consultationId: string;
   patientId: string;
   pharmacies: { id: string; label: string }[];
+  patientAllergies: string[];
+  currentMeds: string[];
 }) {
   const [items, setItems] = React.useState<DraftItem[]>([{ ...BLANK_ITEM }]);
   const [pharmacyId, setPharmacyId] = React.useState('');
