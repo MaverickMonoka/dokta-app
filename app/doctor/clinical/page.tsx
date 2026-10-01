@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { BookOpen, Calculator, Capsule, ExternalLink, Search, ShieldCheck, Stethoscope } from 'lucide-react';
 import { requireArea } from '@dokta/auth';
 
-const tools = [
+const clinicalTools = [
   { title: 'Drug Reference', body: 'Medicine lookup, dosing support, contraindications, interactions and allergy checks.', href: '/doctor/prescriptions', icon: Capsule, action: 'Open prescribing' },
   { title: 'Clinical Reference', body: 'Evidence-led condition summaries, investigations and treatment pathways.', href: '#references', icon: BookOpen, action: 'View references' },
   { title: 'Clinical Calculators', body: 'Common validated calculations with formula, source and version shown.', href: '/doctor/clinical/calculators', icon: Calculator, action: 'Open calculators' },
@@ -31,7 +31,7 @@ export default async function ClinicalToolkitPage() {
       </section>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {tools.map(({ title, body, href, icon: Icon, action }) => (
+        {clinicalTools.map(({ title, body, href, icon: Icon, action }) => (
           <Link key={title} href={href} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-lg transition hover:-translate-y-0.5">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-50 text-sky-700"><Icon className="h-5 w-5" /></div>
             <h2 className="mt-4 font-bold text-slate-950">{title}</h2>
@@ -41,7 +41,7 @@ export default async function ClinicalToolkitPage() {
         ))}
       </div>
 
-      <section id="calculators" className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-lg">
+      <section id="calculator-library" className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-lg">
         <div className="flex items-center gap-2"><Calculator className="h-5 w-5 text-sky-700" /><h2 className="font-bold text-slate-950">Calculator library</h2></div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {['BMI', 'eGFR', 'Creatinine clearance', 'Cardiovascular risk'].map((name) => <div key={name} className="rounded-2xl bg-slate-50 p-4"><div className="font-semibold text-slate-900">{name}</div><div className="mt-1 text-xs text-slate-500">Validated implementation required before clinical use</div></div>)}
