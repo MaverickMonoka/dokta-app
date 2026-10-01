@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@dokta/auth/client';
 import { safeReturnTo } from '@dokta/auth/redirect';
@@ -12,6 +13,26 @@ export function LoginForm({ next, initialError, label = 'Sign in' }: { next?: st
   const [password, setPassword] = React.useState('');
   const [error, setError] = React.useState<string | undefined>(initialError);
   const [busy, setBusy] = React.useState(false);
+  const [resetMessage, setResetMessage] = React.useState<string>();
+
+  async function resetPassword() {
+    if (!email.trim()) { setError('Enter your email above to request a password reset.'); return; }
+    setBusy(true); setError(undefined); setResetMessage(undefined);
+    try {
+      // Implicit recovery links also work when opened on another device.
+      const recovery = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { auth: { flowType: 'implicit', persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
+      );
+      const { error } = await recovery.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/login`,
+      });
+      if (error) throw error;
+      setResetMessage('If this email has an account, a reset link is on its way. Check your inbox and spam folder.');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Could not send the reset email. Try again.');
+    } finally { setBusy(false); }
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -60,6 +81,11 @@ export function LoginForm({ next, initialError, label = 'Sign in' }: { next?: st
       <Button type="submit" full size="lg" loading={busy} disabled={!email || !password}>
         {label}
       </Button>
+
+      <button type="button" onClick={resetPassword} disabled={busy} className="text-sm font-medium text-care hover:text-care-dark disabled:opacity-50">
+        Forgot password? Send reset link
+      </button>
+      {resetMessage && <p role="status" className="text-sm text-care">{resetMessage}</p>}
 
       <p className="text-meta text-muted">
         By signing in you agree to how we handle your health information, set out in our{' '}
