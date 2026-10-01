@@ -29,9 +29,9 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-dvh lg:flex">
-      <aside className="on-navy bg-navy lg:flex lg:h-dvh lg:w-60 lg:shrink-0 lg:flex-col lg:sticky lg:top-0">
-        <div className="flex items-center justify-between gap-3 px-5 py-3 lg:block lg:py-4">
+    <div className="min-h-dvh bg-[#061d35] lg:flex">
+      <aside className="on-navy bg-[linear-gradient(180deg,#0b3b68_0%,#061d35_62%,#041426_100%)] lg:flex lg:h-dvh lg:w-60 lg:shrink-0 lg:flex-col lg:sticky lg:top-0">
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-white/[0.035] px-5 py-4 backdrop-blur-xl lg:block lg:border-0 lg:bg-transparent lg:py-5">
           <div>
             <p className="font-display text-[0.9375rem] font-bold tracking-tight text-white">
               DOKTA
@@ -45,9 +45,10 @@ export function AppShell({
           </div>
         </div>
 
-        <nav className="fixed inset-x-3 bottom-3 z-50 flex items-center justify-around gap-1 rounded-[1.35rem] border border-white/10 bg-navy/95 px-2 py-2 shadow-2xl backdrop-blur-xl lg:static lg:z-auto lg:flex-1 lg:flex-col lg:items-stretch lg:justify-start lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:px-3 lg:pb-3 lg:shadow-none">
+        <nav className="fixed inset-x-3 bottom-3 z-50 flex items-center justify-around gap-1 rounded-[1.35rem] border border-white/10 bg-[#0a3155]/90 px-2 py-2 shadow-[0_18px_50px_rgba(0,0,0,.35)] backdrop-blur-2xl lg:static lg:z-auto lg:flex-1 lg:flex-col lg:items-stretch lg:justify-start lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:px-3 lg:pb-3 lg:shadow-none">
           {nav.map((item) => {
-            const active = currentPath === item.href || currentPath.startsWith(`${item.href}/`);
+            const nested = item.href.split('/').filter(Boolean).length > 1;
+            const active = currentPath === item.href || (nested && currentPath.startsWith(`${item.href}/`));
             return (
               <a
                 key={item.href}
@@ -55,7 +56,7 @@ export function AppShell({
                 aria-current={active ? 'page' : undefined}
                 className={cn(
                   'flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[0.65rem] transition-colors lg:flex-none lg:flex-row lg:gap-2.5 lg:rounded-control lg:px-3 lg:py-2.5 lg:text-sm',
-                  active ? 'bg-white/12 font-medium text-white' : 'text-white/60 hover:bg-white/5 hover:text-white',
+                  active ? 'bg-sky-400/15 font-semibold text-sky-200 ring-1 ring-sky-300/20' : 'text-white/55 hover:bg-white/5 hover:text-white',
                 )}
               >
                 <item.icon className="h-5 w-5 shrink-0 lg:h-4 lg:w-4" aria-hidden />
@@ -77,7 +78,7 @@ export function AppShell({
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1 bg-canvas pb-24 lg:pb-0">{children}</main>
+      <main className="min-w-0 flex-1 bg-[#f3f7fb] pb-24 lg:pb-0">{children}</main>
     </div>
   );
 }
