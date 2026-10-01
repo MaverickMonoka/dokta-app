@@ -9,7 +9,7 @@ export const homeFor: Record<Role, string> = {
   doctor: '/doctor',
   pharmacy: '/pharmacy/pos',
   clinic: '/clinic/queue',
-  admin: '/admin/doctors',
+  admin: '/admin',
 };
 
 /** Route prefixes each role may open. Admin may open everything. */
