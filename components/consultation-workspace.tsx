@@ -286,6 +286,8 @@ export function ConsultationWorkspace({
         consultationId={consultation.id}
         patientId={patient.id}
         pharmacies={pharmacies}
+        patientAllergies={patient.allergies}
+        currentMeds={patient.currentMeds}
       />
     </div>
   );
@@ -337,12 +339,16 @@ function PrescribeSheet({
   consultationId,
   patientId,
   pharmacies,
+  patientAllergies,
+  currentMeds,
 }: {
   open: boolean;
   onClose: () => void;
   consultationId: string;
   patientId: string;
   pharmacies: { id: string; label: string }[];
+  patientAllergies: string[];
+  currentMeds: string[];
 }) {
   const [items, setItems] = React.useState<DraftItem[]>([{ ...BLANK_ITEM }]);
   const [pharmacyId, setPharmacyId] = React.useState('');
@@ -358,6 +364,13 @@ function PrescribeSheet({
 
   function submit() {
     setError(null);
+    const allergyTerms = patientAllergies.map((a) => a.toLowerCase()).filter(Boolean);
+    const medicineTerms = items.map((i) => i.medicineName.trim().toLowerCase()).filter(Boolean);
+    const allergyMatch = medicineTerms.find((medicine) => allergyTerms.some((allergy) => medicine.includes(allergy) || allergy.includes(medicine)));
+    if (allergyMatch) {
+      setError('Potential allergy match detected. Review the patient allergy record before issuing this prescription.');
+      return;
+    }
     const valid = items.filter((i) => i.medicineName && i.dosage && i.frequency);
     if (valid.length === 0) {
       setError('Add at least one complete medicine line.');
@@ -419,6 +432,7 @@ function PrescribeSheet({
         </div>
       ) : (
         <div className="space-y-4">
+          {(patientAllergies.length > 0 || currentMeds.length > 0) && <div className="rounded-card border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><strong>Prescribing safety check</strong><div className="mt-1">Allergies: {patientAllergies.length ? patientAllergies.join(', ') : 'None recorded'}</div><div>Current medicines: {currentMeds.length ? currentMeds.join(', ') : 'None recorded'}</div><div className="mt-2 text-xs">Dokta currently flags direct name matches only. Full drug-drug and drug-allergy interaction checking requires a licensed medicines knowledge source.</div></div>}
           {items.map((item, index) => (
             <div key={index} className="rounded-card border border-hairline p-4">
               <div className="mb-3 flex items-center justify-between">
