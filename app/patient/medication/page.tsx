@@ -33,7 +33,7 @@ export default async function PatientMedication() {
     <>
       <PageHeader
         title="Medication"
-        description="Every prescription written for you. Send one to a pharmacy to have it filled."
+        description="Prescription status, pharmacy destination and remaining repeats."
       />
 
       <div className="p-5 lg:p-8">
@@ -59,7 +59,7 @@ export default async function PatientMedication() {
                           <p className="text-sm font-semibold text-ink">{doctor.users.full_name}</p>
                           <p className="money text-meta text-muted">{rx.reference}</p>
                         </div>
-                        <Badge status={rx.status.toUpperCase()} />
+                        <div className="text-right"><Badge status={rx.status.toUpperCase()} /><p className="mt-1 text-[11px] text-muted">{rx.status === 'issued' ? 'Choose a pharmacy' : rx.status === 'sent_to_pharmacy' ? 'At pharmacy' : rx.status === 'collected' ? 'Collected' : rx.status.replaceAll('_', ' ')}</p></div>
                       </div>
 
                       <ul className="mt-4 space-y-2.5">
