@@ -24,15 +24,15 @@ export default async function LoginPage({
   return (
     <main id="main" className="grid min-h-dvh lg:grid-cols-2">
       {/* Form first in the DOM so a screen reader and a phone both reach it first. */}
-      <div className="flex items-center justify-center bg-white px-6 py-12">
+      <div className="flex items-center justify-center bg-white px-4 py-8 sm:px-6 sm:py-12">
         <div className="w-full max-w-md">
           <p className="font-display text-xl font-bold tracking-tight text-navy">DOKTA</p>
-          <h1 className="mt-8 font-display text-display-2 text-ink">{selected?.label ?? 'Sign in to Dokta'}</h1>
+          <h1 className="mt-6 font-display text-3xl font-bold leading-tight text-ink sm:mt-8 sm:text-display-2">{selected?.label ?? 'Sign in to Dokta'}</h1>
           <p className="mt-2 text-sm text-muted">
             Choose your login below, then sign in with your existing account.
           </p>
 
-          <nav aria-label="Login options" className="mt-6 grid gap-2">
+          <nav aria-label="Login options" className="mt-5 grid gap-2 sm:mt-6">
             {options.map((option) => (
               <Link
                 key={option.role}
