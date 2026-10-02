@@ -1,4 +1,4 @@
-import { BarChart3, Boxes, ScanLine, Truck } from 'lucide-react';
+import { BarChart3, Boxes, ScanLine, Truck, ClipboardCheck } from 'lucide-react';
 import { requireArea } from '@dokta/auth';
 import { RoleShell } from '@/components/shell';
 
@@ -11,6 +11,7 @@ export default async function PharmacyLayout({ children }: { children: React.Rea
         product: 'Pharmacy',
         nav: [
           { href: '/pharmacy/pos', label: 'Till', icon: ScanLine },
+          { href: '/pharmacy/prescriptions', label: 'Prescriptions', icon: ClipboardCheck },
           { href: '/pharmacy/inventory', label: 'Stock', icon: Boxes },
           { href: '/pharmacy/suppliers', label: 'Suppliers', icon: Truck },
           { href: '/pharmacy/reports', label: 'Reports', icon: BarChart3 },

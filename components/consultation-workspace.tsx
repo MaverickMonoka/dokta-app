@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { AlertTriangle, CheckCircle2, FileSignature, Pill, Video, X } from 'lucide-react';
 import {
   Badge,
@@ -201,6 +202,7 @@ export function ConsultationWorkspace({
               </p>
             ) : (
               <div className="flex gap-2 pt-1">
+                <Link href="/doctor/clinical/calculators" className="inline-flex items-center justify-center rounded-control border border-hairline bg-white px-3.5 py-2 text-sm font-semibold text-ink hover:bg-canvas">Clinical tools</Link>
                 <Button variant="outline" onClick={() => setPrescribeOpen(true)}>
                   <Pill className="h-4 w-4" aria-hidden />
                   Prescribe
