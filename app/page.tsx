@@ -1,8 +1,22 @@
-import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowRight, Building2, HeartPulse, Pill, ShieldCheck, Stethoscope } from 'lucide-react';
 import { getSession, homeFor } from '@dokta/auth';
 
-/** The root is a router, not a page: everyone belongs somewhere specific. */
-export default async function Root() {
+export const metadata = { title: 'Healthcare for Africa' };
+
+export default async function Home() {
   const session = await getSession();
-  redirect(session ? homeFor[session.role] : '/login');
+  return <main id="main" className="min-h-dvh overflow-x-hidden bg-[#f4f8fb] text-[#061d35]">
+    <section className="relative overflow-hidden bg-[radial-gradient(circle_at_80%_15%,rgba(16,185,129,.28),transparent_25%),radial-gradient(circle_at_50%_-15%,rgba(56,189,248,.20),transparent_35%),linear-gradient(140deg,#041a2e,#082f4e_60%,#064e4b)] text-white">
+      <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-5 sm:px-6 lg:px-8">
+        <Link href="/" className="flex min-w-0 items-center gap-2.5"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-400 font-display text-xl font-black text-[#04283a]">D+</span><span><span className="block font-display text-lg font-bold tracking-tight">DOKTA</span><span className="hidden text-[9px] font-semibold uppercase tracking-[.18em] text-white/45 min-[380px]:block">Healthcare for Africa</span></span></Link>
+        <div className="flex shrink-0 items-center gap-2">{session ? <Link href={homeFor[session.role]} className="rounded-xl bg-emerald-400 px-3 py-2.5 text-xs font-bold text-[#04283a] sm:px-4 sm:text-sm">Open workspace</Link> : <><Link href="/login" className="hidden rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-semibold sm:inline-flex">Sign in</Link><Link href="/signup" className="rounded-xl bg-emerald-400 px-3 py-2.5 text-xs font-bold text-[#04283a] sm:px-4 sm:text-sm">Get started</Link></>}</div>
+      </nav>
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 pb-16 pt-10 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:px-8 lg:pb-28 lg:pt-20">
+        <div className="max-w-3xl"><div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/15 bg-emerald-300/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.15em] text-emerald-200"><ShieldCheck className="h-3.5 w-3.5"/> Connected healthcare</div><h1 className="mt-6 font-display text-[2.6rem] font-bold leading-[1.02] tracking-[-.04em] sm:text-6xl lg:text-7xl">One health platform.<br/><span className="text-emerald-300">Built for Africa.</span></h1><p className="mt-5 max-w-xl text-base leading-7 text-white/60 sm:text-lg">Patients, doctors, pharmacies and clinics connected through one secure care experience.</p><div className="mt-8 flex flex-col gap-3 min-[420px]:flex-row">{session ? <Link href={homeFor[session.role]} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 font-bold text-[#04283a]">Open Dokta <ArrowRight className="h-4 w-4"/></Link> : <><Link href="/signup" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 font-bold text-[#04283a]">Create patient account <ArrowRight className="h-4 w-4"/></Link><Link href="/login" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/15 bg-white/10 px-5 font-semibold backdrop-blur">Sign in</Link></>}</div></div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">{[[Stethoscope,'Doctors','Consultations & prescribing'],[Pill,'Pharmacies','Prescriptions & stock'],[HeartPulse,'Patients','Appointments & records'],[Building2,'Clinics','Queues & care teams']].map(([Icon,title,copy]:any)=><div key={title} className="min-w-0 rounded-[1.4rem] border border-white/10 bg-white/[.08] p-4 shadow-2xl backdrop-blur sm:p-5"><div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-300/15 text-emerald-200"><Icon className="h-5 w-5"/></div><p className="mt-5 font-display text-base font-bold sm:text-lg">{title}</p><p className="mt-1 text-xs leading-5 text-white/45 sm:text-sm">{copy}</p></div>)}</div>
+      </div>
+    </section>
+    <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8"><div className="grid gap-4 md:grid-cols-3">{[['Care that follows the patient','Health information stays available across authorised care settings.'],['From consultation to pharmacy','Prescriptions move through a clear doctor, pharmacy and patient lifecycle.'],['Role-based by design','Each user gets a focused workspace with protected access boundaries.']].map(([title,copy])=><div key={title} className="rounded-[1.4rem] border border-white bg-white p-5 shadow-xl shadow-slate-900/[.05] sm:p-6"><p className="font-display text-lg font-bold">{title}</p><p className="mt-2 text-sm leading-6 text-slate-500">{copy}</p></div>)}</div></section>
+  </main>;
 }
